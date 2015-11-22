@@ -18,7 +18,13 @@ app.get('/', function(req,res){
 //GET /todos
 
 app.get('/todos', function (req, res) {
-   res.json(todos); 
+    var queryParams = req.query;
+    var filteredTodos = todos;  
+    if (queryParams.hasOwnProperty('completed')){
+        //console.log(Boolean(queryParams.completed));
+        filteredTodos = _.where(filteredTodos,{completed:JSON.parse(queryParams.completed)})
+    }   
+    res.json(filteredTodos); 
 });
 
 //GET /todos/:id
@@ -60,6 +66,34 @@ app.delete('/todos/:id', function (req, res) {
         res.status(404).json({"error": "no todo found with this id."});
     }
     
+});
+
+app.put('/todos/:id', function (req, res) {
+    var todoid = parseInt(req.params.id,10);
+    var matchedtodo = _.findWhere(todos, {id:todoid});
+    var body = _.pick(req.body, 'description','completed');
+    var validAttributes = {};
+    
+    if(!matchedtodo){
+        return res.status(404).json({"error": "no todo found with this id."});
+    }
+    
+    console.log(typeof body.completed);
+    console.log(body.completed);
+    
+    if(body.hasOwnProperty('completed') && _.isBoolean(body.completed)){
+        validAttributes.completed = body.completed;
+    } else if(body.hasOwnProperty('completed')){
+        return res.status(400).json({"error":"completed is the wrong type"});
+    }
+    
+    if(body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0 ){
+        validAttributes.description = body.description;
+    }else if(body.hasOwnProperty('description')){
+        return res.status(400).json({"error":"description is the wrong type"});
+    }
+    _.extend(matchedtodo, validAttributes);
+    res.json(matchedtodo);
 });
 
 app.listen(PORT, function () {
