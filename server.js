@@ -20,21 +20,41 @@ app.get('/', function(req,res){
 //GET /todos
 
 app.get('/todos', function (req, res) {
-    var queryParams = req.query;
-    var filteredTodos = todos;  
-    if (queryParams.hasOwnProperty('completed')){
+    var query = req.query;
+    var where = {};
+    
+    if (query.hasOwnProperty('completed') && query.completed === 'true'){
+        where.completed = true;
+    }else if(query.hasOwnProperty('completed') && query.completed === 'false'){
+        where.completed = false;
+    }
+    
+    if(query.hasOwnProperty('q') && query.q.length >0){
+        where.description = {
+            $like: '%'+query.q+'%'
+        }
+        
+    }
+    db.todo.findAll({where: where}).then(function(todos){
+       res.json(todos);
+    }, function(e){
+        res.status(500).send();
+    });
+    //var filteredTodos = todos;  
+    
+    //if (queryParams.hasOwnProperty('completed')){
         //console.log(Boolean(queryParams.completed));
-        filteredTodos = _.where(filteredTodos,{completed:JSON.parse(queryParams.completed)})
-    } 
+      //  filteredTodos = _.where(filteredTodos,{completed:JSON.parse(queryParams.completed)})
+    //} 
     //console.log(queryParams.q);
     
-    if (queryParams.hasOwnProperty('q')){
-        filteredTodos = _.filter(filteredTodos, function (todo){
+    //if (queryParams.hasOwnProperty('q')){
+      //  filteredTodos = _.filter(filteredTodos, function (todo){
             //console.log(todo.description.indexOf(queryParams.q)>-1);
-            return todo.description.toLowerCase().indexOf(queryParams.q.toLowerCase())>-1;
-        });
-    }
-    res.json(filteredTodos); 
+        //    return todo.description.toLowerCase().indexOf(queryParams.q.toLowerCase())>-1;
+        //});
+    //}
+    //res.json(filteredTodos); 
 });
 
 //GET /todos/:id
@@ -42,13 +62,23 @@ app.get('/todos', function (req, res) {
 app.get('/todos/:id', function (req, res){
     //res.send('Asking for todo with id of ' +req.params.id);
     var todoid = parseInt(req.params.id,10);
-    var matchedtodo = _.findWhere(todos, {id:todoid})
-
-    if(matchedtodo){
-        res.json(matchedtodo);  
-    }else{
-        res.status(404).send();
-    }
+    //var matchedtodo = _.findWhere(todos, {id:todoid})
+    db.todo.findById(todoid).then( function(todo) {
+        if(!!todo){
+           res.json(todo.toJSON()); 
+        } else{
+            res.status(404).send(); 
+        }
+            
+    }, function(e){
+       res.status(500).send(); 
+    });
+    
+    //if(matchedtodo){
+    //    res.json(matchedtodo);  
+    //}else{
+    //    res.status(404).send();
+    //}
 });
 
 app.post('/todos', function (req,res) {
