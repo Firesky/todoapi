@@ -108,23 +108,23 @@ app.delete('/todos/:id', function (req, res) {
     //var matchedtodo = _.findWhere(todos, {
     //    id: todoid
     //});
-    
+
     db.todo.destroy({
-        where:{
-            id:todoid
+        where: {
+            id: todoid
         }
-    }).then(function(rowsdeleted){
-       if(rowsdeleted === 0){
-          res.status(404).json({
-            "error": "no todo found with this id."
-        }); 
-       } else {
-           res.status(204).send();
-       }
-    }, function(){
+    }).then(function (rowsdeleted) {
+        if (rowsdeleted === 0) {
+            res.status(404).json({
+                "error": "no todo found with this id."
+            });
+        } else {
+            res.status(204).send();
+        }
+    }, function () {
         res.status(500).send();
     });
-    
+
 
     //if (matchedtodo) {
     //    todos = _.without(todos, matchedtodo);
@@ -139,40 +139,62 @@ app.delete('/todos/:id', function (req, res) {
 
 app.put('/todos/:id', function (req, res) {
     var todoid = parseInt(req.params.id, 10);
-    var matchedtodo = _.findWhere(todos, {
-        id: todoid
-    });
+    //var matchedtodo = _.findWhere(todos, {
+    //    id: todoid
+    //});
     var body = _.pick(req.body, 'description', 'completed');
-    var validAttributes = {};
+    //var validAttributes = {};
+    attributes = {};
 
-    if (!matchedtodo) {
-        return res.status(404).json({
-            "error": "no todo found with this id."
-        });
+    //if (!matchedtodo) {
+    //    return res.status(404).json({
+    //        "error": "no todo found with this id."
+    //   });
+    //}
+
+    //console.log(typeof body.completed);
+    //console.log(body.completed);
+
+    if (body.hasOwnProperty('completed')) {
+        attributes.completed = body.completed;
     }
 
-    console.log(typeof body.completed);
-    console.log(body.completed);
+    //if (body.hasOwnProperty('completed') && _.isBoolean(body.completed)) {
+    //    validAttributes.completed = body.completed;
+    // } else if (body.hasOwnProperty('completed')) {
+    //   return res.status(400).json({
+    //        "error": "completed is the wrong type"
+    //    });
+    //}
 
-    if (body.hasOwnProperty('completed') && _.isBoolean(body.completed)) {
-        validAttributes.completed = body.completed;
-    } else if (body.hasOwnProperty('completed')) {
-        return res.status(400).json({
-            "error": "completed is the wrong type"
-        });
+    if (body.hasOwnProperty('description')) {
+        attributes.description = body.description;
     }
 
-    if (body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0) {
-        validAttributes.description = body.description;
-    } else if (body.hasOwnProperty('description')) {
-        return res.status(400).json({
-            "error": "description is the wrong type"
-        });
-    }
-    _.extend(matchedtodo, validAttributes);
-    res.json(matchedtodo);
+    //if (body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0) {
+    //    validAttributes.description = body.description;
+    //} else if (body.hasOwnProperty('description')) {
+    //    return res.status(400).json({
+    //        "error": "description is the wrong type"
+    //    });
+    //}
+    //_.extend(matchedtodo, validAttributes);
+    //res.json(matchedtodo);
+
+    db.todo.findById(todoid).then(function (todo) {
+        if (todo) {
+            todo.update(attributes).then(function (todo) {
+                res.json(todo.toJSON())
+            }, function (e) {
+                res.status(400).json(e);
+            });;
+        } else {
+            res.status(404).send();
+        }
+    }, function (e) {
+        res.status(500).send();
+    });
 });
-
 db.sequelize.sync().then(function () {
     app.listen(PORT, function () {
         console.log('Express listening on port ' + PORT + '!');
