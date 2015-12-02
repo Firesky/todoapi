@@ -91,11 +91,29 @@ module.exports = function (sequelize, DataTypes) {
                         }, function (e) {
                             return reject();
                             //res.status(500).send();
-                        })
+                        });
                         //res.json(body);  
                 });
             }
+        , findByToken: function(token){
+            return new Promise ( function(resolve, reject){
+                try{
+                    var decodedJWT = jwt.verify(token, 'qwerty098');
+                    var bytes = cryptojs.AES.decrypt(decodedJWT.token, 'abc123%&');
+                    var tokenData = JSON.parse(bytes.toString(cryptojs.enc.Utf8));
+                    user.findById(tokenData.id).then( function(user){
+                        if(user){
+                            resolve(user);
+                        }else{
+                            reject();
+                        }
+                    });
+                }catch(e){
+                    reject();
+                }
+            });
         }
+    }
     });
     return user;
 };
