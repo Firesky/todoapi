@@ -5,7 +5,7 @@ var jwt = require('jsonwebtoken');
 
 
 
-module.exports = function (sequelize, DataTypes) {
+module.exports = function(sequelize, DataTypes) {
     var user = sequelize.define('user', {
         email: {
             type: DataTypes.STRING,
@@ -27,7 +27,7 @@ module.exports = function (sequelize, DataTypes) {
             validate: {
                 len: [7, 100]
             },
-            set: function (value) {
+            set: function(value) {
                 var salt = bcrypt.genSaltSync(10);
                 var hashedPassword = bcrypt.hashSync(value, salt);
 
@@ -38,18 +38,18 @@ module.exports = function (sequelize, DataTypes) {
         }
     }, {
         hooks: {
-            beforeValidate: function (user, otions) {
+            beforeValidate: function(user, otions) {
                 if (typeof user.email === 'string') {
                     user.email = user.email.toLowerCase();
                 }
             }
         },
         instanceMethods: {
-            topublicJson: function () {
+            topublicJson: function() {
                 var json = this.toJSON();
                 return _.pick(json, 'id', 'email', 'createdAt', 'updatedAt');
             },
-            generateToken: function (type) {
+            generateToken: function(type) {
                 if (!_.isString(type)) {
                     return undefined;
                 }
@@ -71,49 +71,49 @@ module.exports = function (sequelize, DataTypes) {
             }
         },
         classMethods: {
-            authenticate: function (body) {
-                return new Promise(function (resolve, reject) {
+            authenticate: function(body) {
+                return new Promise(function(resolve, reject) {
                     if (typeof body.email !== 'string' || typeof body.password !== 'string') {
                         return reject();
                     }
 
                     user.findOne({
-                            where: {
-                                email: body.email
-                            }
-                        }).then(function (user) {
-                            if (!user || !bcrypt.compareSync(body.password, user.get('password_hash'))) {
-                                //if (!user) {
-                                return reject();
-                            }
-                            resolve(user);
-                            //res.json(user.topublicJson());
-                        }, function (e) {
+                        where: {
+                            email: body.email
+                        }
+                    }).then(function(user) {
+                        if (!user || !bcrypt.compareSync(body.password, user.get('password_hash'))) {
+                            //if (!user) {
                             return reject();
-                            //res.status(500).send();
+                        }
+                        resolve(user);
+                        //res.json(user.topublicJson());
+                    }, function(e) {
+                        return reject();
+                        //res.status(500).send();
+                    });
+                    //res.json(body);  
+                });
+            },
+            findByToken: function(token) {
+                return new Promise(function(resolve, reject) {
+                    try {
+                        var decodedJWT = jwt.verify(token, 'qwerty098');
+                        var bytes = cryptojs.AES.decrypt(decodedJWT.token, 'abc123%&');
+                        var tokenData = JSON.parse(bytes.toString(cryptojs.enc.Utf8));
+                        user.findById(tokenData.id).then(function(user) {
+                            if (user) {
+                                resolve(user);
+                            } else {
+                                reject();
+                            }
                         });
-                        //res.json(body);  
+                    } catch (e) {
+                        reject();
+                    }
                 });
             }
-        , findByToken: function(token){
-            return new Promise ( function(resolve, reject){
-                try{
-                    var decodedJWT = jwt.verify(token, 'qwerty098');
-                    var bytes = cryptojs.AES.decrypt(decodedJWT.token, 'abc123%&');
-                    var tokenData = JSON.parse(bytes.toString(cryptojs.enc.Utf8));
-                    user.findById(tokenData.id).then( function(user){
-                        if(user){
-                            resolve(user);
-                        }else{
-                            reject();
-                        }
-                    });
-                }catch(e){
-                    reject();
-                }
-            });
         }
-    }
     });
     return user;
 };
